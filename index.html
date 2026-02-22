@@ -4,475 +4,221 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wynncraft Ingredient DB</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Phosphor Icons for flat, modern SVGs -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
-        /* Modern Flat UI Customizations */
         :root {
             --bg-dark: #0f1115;
             --bg-card: #1a1d24;
             --border-color: #2a2e37;
             --accent: #4ade80;
-            --accent-hover: #22c55e;
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
         }
-        
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-dark); }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-
-        /* Custom sleek dropdown overrides */
-        .custom-select {
-            appearance: none;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            transition: all 0.2s ease;
-        }
-        .custom-select:hover, .custom-select:focus {
-            border-color: var(--accent);
-            outline: none;
-        }
-        
-        /* Tier Colors */
+        body { background-color: var(--bg-dark); color: var(--text-main); font-family: ui-sans-serif, system-ui; }
         .tier-Mythic { color: #aa00aa; }
         .tier-Fabled { color: #ff5555; }
         .tier-Legendary { color: #55ffff; }
         .tier-Rare { color: #ff55ff; }
         .tier-Unique { color: #ffff55; }
         .tier-Normal { color: #ffffff; }
-
-        .card-hover { transition: transform 0.2s, box-shadow 0.2s; border: 1px solid var(--border-color); }
-        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); border-color: #374151; }
-
-        #toast { transition: opacity 0.3s ease-in-out; }
-        
-        /* Checkbox styling */
-        .custom-checkbox {
-            accent-color: var(--accent);
-            width: 1.1rem;
-            height: 1.1rem;
-            cursor: pointer;
-        }
+        .card-hover:hover { border-color: #4ade80; transform: translateY(-2px); }
+        .custom-checkbox { accent-color: var(--accent); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- Top Navigation -->
     <nav class="border-b border-[var(--border-color)] bg-[var(--bg-card)] sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2 cursor-pointer" onclick="app.showList()">
                 <i class="ph-fill ph-flask text-2xl text-[var(--accent)]"></i>
-                <span class="font-bold text-xl tracking-wide">Wynn<span class="text-[var(--accent)]">Ingredients</span></span>
+                <span class="font-bold text-xl uppercase tracking-tighter">Wynn<span class="text-[var(--accent)]">Ingredients</span></span>
             </div>
-            <div class="text-sm text-[var(--text-muted)]" id="db-stats">Loading...</div>
+            <div class="text-xs font-mono text-[var(--text-muted)]" id="db-stats">Loading Data...</div>
         </div>
     </nav>
 
-    <!-- Main App Container -->
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8" id="app-root">
-        
-        <!-- ================= LIST VIEW ================= -->
-        <div id="view-list" class="flex flex-col md:flex-row gap-6">
-            
-            <!-- Sidebar Filters -->
-            <aside class="w-full md:w-64 flex-shrink-0 space-y-6">
-                <!-- Search -->
-                <div class="space-y-2">
-                    <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Search Name</label>
-                    <div class="relative">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="filter-search" placeholder="Ingredient name..." 
-                               class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg py-2 pl-10 pr-4 text-sm focus:border-[var(--accent)] focus:outline-none transition-colors">
+    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-8">
+        <!-- List View -->
+        <div id="view-list" class="flex flex-col md:flex-row gap-8">
+            <aside class="w-full md:w-72 space-y-6">
+                <div>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Search</label>
+                    <input type="text" id="filter-search" placeholder="Ingredient name..." class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-3 text-sm focus:border-[var(--accent)] outline-none">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Identifications</label>
+                    <div class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-3">
+                        <input type="text" id="stat-search" placeholder="Filter stats..." class="w-full bg-black/20 border-b border-[var(--border-color)] mb-3 pb-1 text-xs outline-none">
+                        <div id="filter-identifications" class="max-h-60 overflow-y-auto space-y-2 text-sm"></div>
                     </div>
                 </div>
 
-                <!-- NEW: Identifications / Tags Filter -->
-                <div class="space-y-2">
-                    <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Identifications (Tags)</label>
-                    <div class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 flex flex-col gap-2">
-                        <!-- Mini search just for stats -->
-                        <div class="relative">
-                            <i class="ph ph-funnel absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
-                            <input type="text" id="stat-search" placeholder="Find a tag..." 
-                                   class="w-full bg-[#0f1115] border border-[var(--border-color)] rounded py-1 pl-7 pr-2 text-xs focus:border-[var(--accent)] focus:outline-none text-[var(--text-main)]">
-                        </div>
-                        <!-- Scrolling checklist container -->
-                        <div id="filter-identifications" class="max-h-48 overflow-y-auto space-y-1 pr-1 text-sm text-[var(--text-muted)]">
-                            <div class="text-xs italic text-center py-2">Loading tags...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tier Filter -->
-                <div class="space-y-2">
-                    <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Tier</label>
-                    <div class="relative">
-                        <select id="filter-tier" class="custom-select w-full rounded-lg py-2 pl-3 pr-10 text-sm">
-                            <option value="">All Tiers</option>
-                            <option value="Normal">Normal</option>
-                            <option value="Unique">Unique</option>
-                            <option value="Rare">Rare</option>
-                            <option value="Legendary">Legendary</option>
-                            <option value="Fabled">Fabled</option>
-                            <option value="Mythic">Mythic</option>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Tier</label>
+                        <select id="filter-tier" class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 text-xs">
+                            <option value="">All</option>
+                            <option value="Normal">Normal</option><option value="Unique">Unique</option><option value="Rare">Rare</option>
+                            <option value="Legendary">Legendary</option><option value="Fabled">Fabled</option><option value="Mythic">Mythic</option>
                         </select>
-                        <i class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"></i>
                     </div>
-                </div>
-
-                <!-- Profession Filter -->
-                <div class="space-y-2">
-                    <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Profession</label>
-                    <div class="relative">
-                        <select id="filter-profession" class="custom-select w-full rounded-lg py-2 pl-3 pr-10 text-sm">
-                            <option value="">All Professions</option>
-                            <option value="ALCHEMISM">Alchemism</option>
-                            <option value="ARMOURING">Armouring</option>
-                            <option value="COOKING">Cooking</option>
-                            <option value="JEWELING">Jeweling</option>
-                            <option value="SCRIBING">Scribing</option>
-                            <option value="TAILORING">Tailoring</option>
-                            <option value="WEAPONSMITHING">Weaponsmithing</option>
-                            <option value="WOODWORKING">Woodworking</option>
-                        </select>
-                        <i class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"></i>
-                    </div>
-                </div>
-
-                <!-- Level Range -->
-                <div class="space-y-2">
-                    <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Level Range</label>
-                    <div class="flex items-center gap-2">
-                        <input type="number" id="filter-lvl-min" placeholder="Min" min="1" max="130" class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg py-2 px-3 text-sm focus:border-[var(--accent)] focus:outline-none">
-                        <span class="text-gray-500">-</span>
-                        <input type="number" id="filter-lvl-max" placeholder="Max" min="1" max="130" class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg py-2 px-3 text-sm focus:border-[var(--accent)] focus:outline-none">
+                    <div>
+                        <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Level</label>
+                        <input type="number" id="filter-lvl-min" placeholder="Min" class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 text-xs">
                     </div>
                 </div>
             </aside>
 
-            <!-- Results Grid -->
             <div class="flex-grow">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold" id="results-count">Loading items...</h2>
-                </div>
-                <!-- Dynamic Grid -->
-                <div id="ingredient-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    <!-- Cards injected here via JS -->
-                </div>
+                <div id="results-count" class="text-sm font-bold text-gray-500 mb-6 uppercase tracking-widest"></div>
+                <div id="ingredient-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
         </div>
 
-        <!-- ================= DETAIL VIEW ================= -->
-        <div id="view-detail" class="hidden max-w-4xl mx-auto">
-            <button onclick="app.showList()" class="mb-6 flex items-center gap-2 text-[var(--text-muted)] hover:text-white transition-colors">
-                <i class="ph ph-arrow-left"></i> Back to search
+        <!-- Detail View -->
+        <div id="view-detail" class="hidden animate-in fade-in duration-300">
+            <button onclick="app.showList()" class="mb-8 flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-white transition-colors">
+                <i class="ph ph-caret-left"></i> BACK TO DATABASE
             </button>
-            
-            <div id="detail-container" class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-6 shadow-lg">
-                <!-- Detail content injected here via JS -->
-            </div>
+            <div id="detail-container"></div>
         </div>
-
     </main>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded shadow-lg opacity-0 pointer-events-none flex items-center gap-2 border border-gray-700">
-        <i class="ph-fill ph-check-circle text-[var(--accent)]"></i>
-        <span id="toast-msg">Copied!</span>
-    </div>
+    <div id="toast" class="fixed bottom-8 right-8 bg-white text-black px-6 py-3 rounded-full font-bold shadow-2xl opacity-0 transition-opacity pointer-events-none">Copied!</div>
 
     <script>
-        /**
-         * Core Application Logic
-         */
         const app = {
             data: [],
-            filtered: [],
-            
-            // Initialization
-            async init() {
+            init: async function() {
                 try {
                     const res = await fetch('public/data/ingredients.json');
-                    if (!res.ok) throw new Error('Data not found.');
                     this.data = await res.json();
-                    
-                    document.getElementById('db-stats').innerText = `${this.data.length} Ingredients`;
-                    
-                    this.buildIdentificationsFilter();
+                    document.getElementById('db-stats').innerText = `${this.data.length} INGREDIENTS LOADED`;
+                    this.buildFilters();
                     this.setupListeners();
                     this.applyFilters();
-                } catch (e) {
-                    console.error(e);
-                    document.getElementById('results-count').innerText = "Error loading database. Ensure Github Action succeeded.";
-                }
+                } catch(e) { document.getElementById('results-count').innerText = "Data file not found. Run the GitHub Action!"; }
             },
-
-            // Auto-generates the checkboxes for every single stat in the game
-            buildIdentificationsFilter() {
-                const allStats = new Set();
-                
-                // Scan the entire database to find every unique stat name
-                this.data.forEach(item => {
-                    if (item.identifications) {
-                        Object.keys(item.identifications).forEach(stat => allStats.add(stat));
-                    }
-                });
-
-                // Sort alphabetically
-                const sortedStats = Array.from(allStats).sort();
-                const container = document.getElementById('filter-identifications');
-                
-                // Render HTML for checkboxes
-                container.innerHTML = sortedStats.map(stat => {
-                    // Turn "spellDamage" into "Spell Damage"
-                    const formattedLabel = stat.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                    
-                    return `
-                        <label class="flex items-center gap-2 cursor-pointer hover:bg-gray-800/50 p-1.5 rounded transition-colors stat-label-container">
-                            <input type="checkbox" value="${stat}" class="stat-filter custom-checkbox bg-gray-900 border-gray-600 rounded"> 
-                            <span class="truncate stat-label-text">${formattedLabel}</span>
-                        </label>
-                    `;
-                }).join('');
-
-                // Listeners for the tiny search bar inside the tags filter
-                document.getElementById('stat-search').addEventListener('input', (e) => {
-                    const term = e.target.value.toLowerCase();
-                    document.querySelectorAll('.stat-label-container').forEach(label => {
-                        const text = label.querySelector('.stat-label-text').innerText.toLowerCase();
-                        label.style.display = text.includes(term) ? 'flex' : 'none';
-                    });
-                });
+            buildFilters: function() {
+                const stats = new Set();
+                this.data.forEach(i => i.identifications && Object.keys(i.identifications).forEach(s => stats.add(s)));
+                document.getElementById('filter-identifications').innerHTML = Array.from(stats).sort().map(s => `
+                    <label class="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)] stat-row">
+                        <input type="checkbox" value="${s}" class="stat-filter custom-checkbox">
+                        <span class="truncate stat-name">${s.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                    </label>
+                `).join('');
             },
-
-            // Event Listeners setup
-            setupListeners() {
-                // Listen to main inputs
-                const inputs = ['filter-search', 'filter-tier', 'filter-profession', 'filter-lvl-min', 'filter-lvl-max'];
-                inputs.forEach(id => {
+            setupListeners: function() {
+                ['filter-search', 'filter-tier', 'filter-lvl-min', 'filter-identifications'].forEach(id => {
                     document.getElementById(id).addEventListener('input', () => this.applyFilters());
                 });
-
-                // Listen to all the newly generated stat checkboxes
-                document.getElementById('filter-identifications').addEventListener('change', (e) => {
-                    if(e.target.classList.contains('stat-filter')) {
-                        this.applyFilters();
-                    }
+                document.getElementById('stat-search').addEventListener('input', (e) => {
+                    const val = e.target.value.toLowerCase();
+                    document.querySelectorAll('.stat-row').forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? 'flex' : 'none');
                 });
             },
-
-            // Filter Engine
-            applyFilters() {
+            applyFilters: function() {
                 const search = document.getElementById('filter-search').value.toLowerCase();
                 const tier = document.getElementById('filter-tier').value;
-                const prof = document.getElementById('filter-profession').value;
-                const lvlMin = parseInt(document.getElementById('filter-lvl-min').value) || 0;
-                const lvlMax = parseInt(document.getElementById('filter-lvl-max').value) || 999;
+                const lvl = parseInt(document.getElementById('filter-lvl-min').value) || 0;
+                const checked = Array.from(document.querySelectorAll('.stat-filter:checked')).map(c => c.value);
 
-                // Find which stat checkboxes are currently ticked
-                const selectedStats = Array.from(document.querySelectorAll('.stat-filter:checked')).map(cb => cb.value);
-
-                this.filtered = this.data.filter(item => {
-                    // Search Match
-                    if (search && !item.name.toLowerCase().includes(search) && !item.internalName.toLowerCase().includes(search)) return false;
-                    // Tier Match
-                    if (tier && item.tier !== tier) return false;
-                    // Level Match
-                    const itemLvl = item.requirements?.level || 0;
-                    if (itemLvl < lvlMin || itemLvl > lvlMax) return false;
-                    // Profession Match
-                    if (prof && (!item.requirements?.skills || !item.requirements.skills.includes(prof))) return false;
-
-                    // Identifications (Tags) Match - MUST HAVE ALL CHECKED TAGS
-                    if (selectedStats.length > 0) {
-                        if (!item.identifications) return false;
-                        
-                        // Check if every selected stat exists inside this item's identifications
-                        const hasAllStats = selectedStats.every(stat => item.identifications[stat] !== undefined);
-                        if (!hasAllStats) return false;
-                    }
-
+                const filtered = this.data.filter(i => {
+                    if(search && !i.name.toLowerCase().includes(search)) return false;
+                    if(tier && i.tier !== tier) return false;
+                    if(lvl && (i.requirements?.level || 0) < lvl) return false;
+                    if(checked.length > 0 && (!i.identifications || !checked.every(s => i.identifications[s]))) return false;
                     return true;
                 });
 
-                this.renderGrid();
-            },
-
-            // UI Render: Grid
-            renderGrid() {
-                const grid = document.getElementById('ingredient-grid');
-                document.getElementById('results-count').innerText = `Showing ${this.filtered.length} ingredients`;
-                
-                grid.innerHTML = this.filtered.slice(0, 100).map(item => `
-                    <div class="bg-[var(--bg-card)] card-hover rounded-xl p-4 cursor-pointer flex flex-col h-full" onclick="app.showDetail('${item.internalName}')">
-                        <div class="flex-grow">
-                            <h3 class="font-bold text-lg leading-tight mb-1 tier-${item.tier}">${item.name}</h3>
-                            <div class="text-xs text-[var(--text-muted)] mb-3">Lvl. ${item.requirements?.level || 0}</div>
-                            
-                            <div class="flex flex-wrap gap-1 mb-3">
-                                ${(item.requirements?.skills || []).map(skill => 
-                                    `<span class="bg-gray-800 text-gray-300 text-[10px] uppercase font-bold px-2 py-1 rounded border border-gray-700">${skill.substring(0,4)}</span>`
-                                ).join('')}
-                            </div>
+                document.getElementById('results-count').innerText = `${filtered.length} Results`;
+                document.getElementById('ingredient-grid').innerHTML = filtered.slice(0, 60).map(i => `
+                    <div class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-5 cursor-pointer card-hover transition-all" onclick="app.showDetail('${i.internalName}')">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="font-bold text-lg tier-${i.tier}">${i.name}</h3>
+                            <span class="text-[10px] font-bold text-gray-600 bg-black/30 px-2 py-1 rounded">LVL ${i.requirements?.level || 0}</span>
                         </div>
-                        <div class="text-xs text-gray-500 border-t border-[var(--border-color)] pt-3 mt-auto flex items-center gap-1">
-                            <i class="ph ph-sword"></i>
-                            ${item.dropMeta ? `Drops from: <span class="text-gray-300 truncate">${item.dropMeta.name}</span>` : 'Source unknown'}
+                        <div class="text-[10px] text-gray-500 uppercase font-black tracking-widest truncate">
+                            ${i.dropMeta ? `Source: ${i.dropMeta.name}` : 'Source Unknown'}
                         </div>
                     </div>
-                `).join('') + (this.filtered.length > 100 ? `<div class="p-4 text-center text-[var(--text-muted)] col-span-full">...and ${this.filtered.length - 100} more (narrow your search)</div>` : '');
+                `).join('');
             },
-
-            // UI Render: Detail Page
-            showDetail(internalName) {
-                const item = this.data.find(i => i.internalName === internalName);
-                if (!item) return;
-
+            showDetail: function(name) {
+                const i = this.data.find(x => x.internalName === name);
                 document.getElementById('view-list').classList.add('hidden');
                 document.getElementById('view-detail').classList.remove('hidden');
-                window.scrollTo(0,0);
-
-                const container = document.getElementById('detail-container');
                 
-                // Construct identifications HTML
-                let identsHtml = '<div class="text-[var(--text-muted)] text-sm italic">No specific identifications.</div>';
-                if (item.identifications && Object.keys(item.identifications).length > 0) {
-                    identsHtml = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">';
-                    for (const [key, val] of Object.entries(item.identifications)) {
-                        const min = val.minimum !== undefined ? val.minimum : val;
-                        const max = val.maximum !== undefined ? val.maximum : val;
-                        const isNegative = max < 0;
-                        const color = isNegative ? 'text-red-400' : 'text-green-400';
-                        identsHtml += `
-                            <div class="flex justify-between items-center border-b border-gray-800 pb-1">
-                                <span class="capitalize text-sm text-gray-300">${key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                <span class="font-mono text-sm ${color}">${min === max ? min : `${min} to ${max}`}</span>
-                            </div>
-                        `;
-                    }
-                    identsHtml += '</div>';
-                }
-
-                // Construct Location/Obtain HTML
-                let obtainHtml = '';
-                if (item.dropMeta) {
-                    const type = item.dropMeta.type || 'Mob';
-                    const name = item.dropMeta.name || 'Unknown';
-                    const coords = item.dropMeta.coordinates ? item.dropMeta.coordinates.join(', ') : null;
-                    const tpCmd = coords ? `/tp ${item.dropMeta.coordinates[0]} ${item.dropMeta.coordinates[1]} ${item.dropMeta.coordinates[2]}` : null;
-                    
-                    obtainHtml = `
-                        <div class="bg-gray-800/50 rounded-lg p-4 border border-gray-700 mb-4">
-                            <div class="flex items-center gap-2 mb-2">
-                                <i class="ph-fill ph-skull text-red-400 text-xl"></i>
-                                <span class="font-bold">Kill ${type}: <span class="text-white">${name}</span></span>
-                            </div>
-                            
-                            ${coords ? `
-                                <div class="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between bg-gray-900 rounded p-3">
-                                    <div>
-                                        <div class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Coordinates</div>
-                                        <div class="font-mono text-[var(--accent)]">[ ${coords} ]</div>
-                                    </div>
-                                    <button onclick="app.copyToClipboard('${tpCmd}')" class="flex items-center gap-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-gray-900 px-4 py-2 rounded font-bold text-sm transition-colors">
-                                        <i class="ph ph-copy"></i> Copy /tp
-                                    </button>
-                                </div>
-                            ` : ''}
-
-                            ${item.nearestPlace ? `
-                                <div class="mt-3 text-sm text-gray-400 flex items-center gap-1">
-                                    <i class="ph ph-map-pin"></i> Nearby: <span class="text-white">${item.nearestPlace.name}</span> (~${item.nearestPlace.distance} blocks)
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                } else {
-                    obtainHtml = `
-                        <div class="bg-gray-800/50 rounded-lg p-4 border border-gray-700 text-gray-400 flex items-center gap-2">
-                            <i class="ph ph-question text-xl"></i> 
-                            Source unknown in official API. Check <a href="https://wynncraft.wiki.gg/wiki/${encodeURIComponent(item.name)}" target="_blank" class="text-[var(--accent)] hover:underline">Wiki.gg</a>.
-                        </div>
-                    `;
-                }
-
-                // Inject Full HTML
-                container.innerHTML = `
-                    <div class="border-b border-[var(--border-color)] pb-4 mb-6">
-                        <div class="flex items-center gap-3 mb-2">
-                            <h2 class="text-3xl font-bold tier-${item.tier}">${item.name}</h2>
-                            <span class="px-2 py-1 bg-gray-800 text-xs font-bold rounded border border-gray-700 text-gray-300">Tier: ${item.tier}</span>
-                            <span class="px-2 py-1 bg-gray-800 text-xs font-bold rounded border border-gray-700 text-gray-300">Lvl: ${item.requirements?.level || 0}</span>
-                        </div>
-                        <div class="text-sm text-gray-500 font-mono">ID: ${item.internalName}</div>
+                let idHtml = Object.entries(i.identifications || {}).map(([k, v]) => `
+                    <div class="flex justify-between py-1 border-b border-white/5">
+                        <span class="text-sm text-gray-400 capitalize">${k.replace(/([A-Z])/g, ' $1')}</span>
+                        <span class="font-mono text-sm ${v.maximum < 0 ? 'text-red-400' : 'text-green-400'}">${v.minimum || v} to ${v.maximum || v}</span>
                     </div>
+                `).join('');
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- Left Column: Stats -->
+                // WYNNTILS STYLE SOURCE BOX
+                let sourceBox = `
+                    <div class="bg-black/40 rounded-xl p-6 border border-white/5">
+                        <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Obtain Information</h4>
+                        ${i.dropMeta ? `
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                                        <i class="ph-fill ph-skull text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-[10px] font-bold text-gray-500 uppercase">Specific Mob Drop</div>
+                                        <div class="text-lg font-bold text-white">${i.dropMeta.name}</div>
+                                    </div>
+                                </div>
+                                <div class="bg-white/5 rounded-lg p-4 flex items-center justify-between">
+                                    <div class="font-mono text-[var(--accent)] text-sm italic">${i.dropMeta.coordinates.join(', ')}</div>
+                                    <button onclick="app.copy('/tp ${i.dropMeta.coordinates.join(' ')}')" class="bg-[var(--accent)] text-black font-black text-[10px] px-4 py-2 rounded uppercase tracking-widest hover:brightness-110 transition-all">Copy /TP</button>
+                                </div>
+                                ${i.nearestPlace ? `<div class="text-[10px] text-gray-500 italic"><i class="ph ph-map-pin"></i> Located near ${i.nearestPlace.name}</div>` : ''}
+                            </div>
+                        ` : `<div class="text-gray-500 italic text-sm">No official drop source listed. Likely a gathering material or global loot drop.</div>`}
+                    </div>
+                `;
+
+                document.getElementById('detail-container').innerHTML = `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
                         <div>
-                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2 border-b border-gray-800 pb-2">
-                                <i class="ph ph-sparkle text-yellow-400"></i> Identifications
-                            </h3>
-                            ${identsHtml}
+                            <h1 class="text-5xl font-black mb-2 tier-${i.tier}">${i.name}</h1>
+                            <div class="flex gap-4 mb-8 text-xs font-bold uppercase tracking-widest text-gray-500">
+                                <span>${i.tier} Tier</span>
+                                <span>•</span>
+                                <span>Level ${i.requirements?.level || 0}</span>
+                            </div>
+                            <div class="space-y-1">${idHtml || '<div class="text-gray-600 italic">No Identifications</div>'}</div>
                         </div>
-
-                        <!-- Right Column: Obtain -->
-                        <div>
-                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2 border-b border-gray-800 pb-2">
-                                <i class="ph ph-sword text-red-400"></i> How to Obtain
-                            </h3>
-                            ${obtainHtml}
-                            
-                            <!-- Professions requirements -->
-                            <div class="mt-6">
-                                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Used In</h4>
+                        <div class="space-y-8">
+                            ${sourceBox}
+                            <div class="bg-white/5 rounded-xl p-6">
+                                <h4 class="text-[10px] font-black text-gray-500 uppercase mb-3">Required For</h4>
                                 <div class="flex flex-wrap gap-2">
-                                    ${(item.requirements?.skills || []).map(skill => 
-                                        `<span class="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded border border-gray-700">${skill}</span>`
-                                    ).join('')}
+                                    ${(i.requirements?.skills || []).map(s => `<span class="bg-white/10 px-3 py-1 rounded text-[10px] font-bold">${s}</span>`).join('')}
                                 </div>
                             </div>
                         </div>
                     </div>
                 `;
             },
-
-            // Navigation back
-            showList() {
+            showList: function() {
                 document.getElementById('view-detail').classList.add('hidden');
                 document.getElementById('view-list').classList.remove('hidden');
             },
-
-            // Utility: Copy to clipboard
-            copyToClipboard(text) {
-                const el = document.createElement('textarea');
-                el.value = text;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
-                
-                // Show Toast
-                const toast = document.getElementById('toast');
-                toast.classList.remove('opacity-0', 'pointer-events-none');
-                setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 2000);
+            copy: function(txt) {
+                const el = document.createElement('textarea'); el.value = txt; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+                const t = document.getElementById('toast'); t.classList.remove('opacity-0'); setTimeout(() => t.classList.add('opacity-0'), 2000);
             }
         };
-
-        // Boot
-        window.addEventListener('DOMContentLoaded', () => app.init());
+        app.init();
     </script>
 </body>
 </html>
