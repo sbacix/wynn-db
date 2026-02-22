@@ -57,6 +57,14 @@
         .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); border-color: #374151; }
 
         #toast { transition: opacity 0.3s ease-in-out; }
+        
+        /* Checkbox styling */
+        .custom-checkbox {
+            accent-color: var(--accent);
+            width: 1.1rem;
+            height: 1.1rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -82,11 +90,28 @@
             <aside class="w-full md:w-64 flex-shrink-0 space-y-6">
                 <!-- Search -->
                 <div class="space-y-2">
-                    <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Search</label>
+                    <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Search Name</label>
                     <div class="relative">
                         <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         <input type="text" id="filter-search" placeholder="Ingredient name..." 
                                class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg py-2 pl-10 pr-4 text-sm focus:border-[var(--accent)] focus:outline-none transition-colors">
+                    </div>
+                </div>
+
+                <!-- NEW: Identifications / Tags Filter -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">Identifications (Tags)</label>
+                    <div class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 flex flex-col gap-2">
+                        <!-- Mini search just for stats -->
+                        <div class="relative">
+                            <i class="ph ph-funnel absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                            <input type="text" id="stat-search" placeholder="Find a tag..." 
+                                   class="w-full bg-[#0f1115] border border-[var(--border-color)] rounded py-1 pl-7 pr-2 text-xs focus:border-[var(--accent)] focus:outline-none text-[var(--text-main)]">
+                        </div>
+                        <!-- Scrolling checklist container -->
+                        <div id="filter-identifications" class="max-h-48 overflow-y-auto space-y-1 pr-1 text-sm text-[var(--text-muted)]">
+                            <div class="text-xs italic text-center py-2">Loading tags...</div>
+                        </div>
                     </div>
                 </div>
 
@@ -170,8 +195,7 @@
 
     <script>
         /**
-         * Core Application Logic (Lossless Chunking Structure)
-         * Keeps data strictly in memory, maps to views.
+         * Core Application Logic
          */
         const app = {
             data: [],
@@ -180,25 +204,72 @@
             // Initialization
             async init() {
                 try {
-                    // Try to fetch compiled data from public folder (built by GH action)
                     const res = await fetch('public/data/ingredients.json');
-                    if (!res.ok) throw new Error('Data not found. Did the GitHub Action run?');
+                    if (!res.ok) throw new Error('Data not found.');
                     this.data = await res.json();
                     
                     document.getElementById('db-stats').innerText = `${this.data.length} Ingredients`;
+                    
+                    this.buildIdentificationsFilter();
                     this.setupListeners();
                     this.applyFilters();
                 } catch (e) {
                     console.error(e);
-                    document.getElementById('results-count').innerText = "Error loading database. Make sure public/data/ingredients.json exists.";
+                    document.getElementById('results-count').innerText = "Error loading database. Ensure Github Action succeeded.";
                 }
+            },
+
+            // Auto-generates the checkboxes for every single stat in the game
+            buildIdentificationsFilter() {
+                const allStats = new Set();
+                
+                // Scan the entire database to find every unique stat name
+                this.data.forEach(item => {
+                    if (item.identifications) {
+                        Object.keys(item.identifications).forEach(stat => allStats.add(stat));
+                    }
+                });
+
+                // Sort alphabetically
+                const sortedStats = Array.from(allStats).sort();
+                const container = document.getElementById('filter-identifications');
+                
+                // Render HTML for checkboxes
+                container.innerHTML = sortedStats.map(stat => {
+                    // Turn "spellDamage" into "Spell Damage"
+                    const formattedLabel = stat.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                    
+                    return `
+                        <label class="flex items-center gap-2 cursor-pointer hover:bg-gray-800/50 p-1.5 rounded transition-colors stat-label-container">
+                            <input type="checkbox" value="${stat}" class="stat-filter custom-checkbox bg-gray-900 border-gray-600 rounded"> 
+                            <span class="truncate stat-label-text">${formattedLabel}</span>
+                        </label>
+                    `;
+                }).join('');
+
+                // Listeners for the tiny search bar inside the tags filter
+                document.getElementById('stat-search').addEventListener('input', (e) => {
+                    const term = e.target.value.toLowerCase();
+                    document.querySelectorAll('.stat-label-container').forEach(label => {
+                        const text = label.querySelector('.stat-label-text').innerText.toLowerCase();
+                        label.style.display = text.includes(term) ? 'flex' : 'none';
+                    });
+                });
             },
 
             // Event Listeners setup
             setupListeners() {
+                // Listen to main inputs
                 const inputs = ['filter-search', 'filter-tier', 'filter-profession', 'filter-lvl-min', 'filter-lvl-max'];
                 inputs.forEach(id => {
                     document.getElementById(id).addEventListener('input', () => this.applyFilters());
+                });
+
+                // Listen to all the newly generated stat checkboxes
+                document.getElementById('filter-identifications').addEventListener('change', (e) => {
+                    if(e.target.classList.contains('stat-filter')) {
+                        this.applyFilters();
+                    }
                 });
             },
 
@@ -210,6 +281,9 @@
                 const lvlMin = parseInt(document.getElementById('filter-lvl-min').value) || 0;
                 const lvlMax = parseInt(document.getElementById('filter-lvl-max').value) || 999;
 
+                // Find which stat checkboxes are currently ticked
+                const selectedStats = Array.from(document.querySelectorAll('.stat-filter:checked')).map(cb => cb.value);
+
                 this.filtered = this.data.filter(item => {
                     // Search Match
                     if (search && !item.name.toLowerCase().includes(search) && !item.internalName.toLowerCase().includes(search)) return false;
@@ -220,6 +294,15 @@
                     if (itemLvl < lvlMin || itemLvl > lvlMax) return false;
                     // Profession Match
                     if (prof && (!item.requirements?.skills || !item.requirements.skills.includes(prof))) return false;
+
+                    // Identifications (Tags) Match - MUST HAVE ALL CHECKED TAGS
+                    if (selectedStats.length > 0) {
+                        if (!item.identifications) return false;
+                        
+                        // Check if every selected stat exists inside this item's identifications
+                        const hasAllStats = selectedStats.every(stat => item.identifications[stat] !== undefined);
+                        if (!hasAllStats) return false;
+                    }
 
                     return true;
                 });
