@@ -3,92 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wynncraft Ingredient DB</title>
+    <title>Imperial Sweat-Shop | Gated Knowledge</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         :root {
-            --bg-dark: #0f1115;
-            --bg-card: #1a1d24;
-            --border-color: #2a2e37;
-            --accent: #4ade80;
-            --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
+            --bg-deep: #050505;
+            --bg-matte: #121212;
+            --bg-card: #181818;
+            --border-matte: #252525;
+            --crimson: #991b1b;
+            --gold: #d4af37;
+            --gold-glow: rgba(212, 175, 55, 0.4);
+            --text-main: #d1d5db;
         }
-        body { background-color: var(--bg-dark); color: var(--text-main); font-family: ui-sans-serif, system-ui; }
-        .tier-Mythic { color: #aa00aa; }
-        .tier-Fabled { color: #ff5555; }
+
+        body { 
+            background-color: var(--bg-deep); 
+            color: var(--text-main); 
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Matte UI Elements - No Transparency */
+        .matte-container { background-color: var(--bg-matte); border: 1px solid var(--border-matte); }
+        .matte-card { background-color: var(--bg-card); border: 1px solid var(--border-matte); }
+        .matte-input { background-color: #000000; border: 1px solid var(--border-matte); color: white; }
+        .matte-input:focus { border-color: var(--gold); outline: none; }
+
+        /* Range Slider Styling */
+        .range-slider-container {
+            position: relative;
+            height: 6px;
+            background: #222;
+            border-radius: 3px;
+            margin: 20px 0;
+        }
+        .range-slider-progress {
+            position: absolute;
+            height: 100%;
+            background: var(--gold);
+            border-radius: 3px;
+        }
+        .range-input {
+            position: absolute;
+            width: 100%;
+            top: -7px;
+            background: none;
+            pointer-events: none;
+            -webkit-appearance: none;
+        }
+        .range-input::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 2px;
+            background: var(--gold);
+            cursor: pointer;
+            pointer-events: auto;
+            -webkit-appearance: none;
+            border: 2px solid black;
+        }
+
+        /* Tier Colors */
+        .tier-Mythic { color: #ff00ff; }
+        .tier-Fabled { color: #ff4444; }
         .tier-Legendary { color: #55ffff; }
         .tier-Rare { color: #ff55ff; }
         .tier-Unique { color: #ffff55; }
         .tier-Normal { color: #ffffff; }
-        .card-hover:hover { border-color: #4ade80; transform: translateY(-2px); }
-        .custom-checkbox { accent-color: var(--accent); }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+        .imperial-header {
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-weight: 900;
+        }
+
+        .sweat-badge {
+            background: var(--crimson);
+            color: white;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-weight: bold;
+        }
+
+        /* Copy Button Animation */
+        .btn-imperial {
+            background-color: var(--gold);
+            color: black;
+            font-weight: 800;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .btn-imperial:hover { transform: scale(1.02); filter: brightness(1.1); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <nav class="border-b border-[var(--border-color)] bg-[var(--bg-card)] sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2 cursor-pointer" onclick="app.showList()">
-                <i class="ph-fill ph-flask text-2xl text-[var(--accent)]"></i>
-                <span class="font-bold text-xl uppercase tracking-tighter">Wynn<span class="text-[var(--accent)]">Ingredients</span></span>
+    <!-- Navbar -->
+    <nav class="border-b border-[var(--border-matte)] bg-[var(--bg-matte)] h-20 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+            <div class="flex flex-col cursor-pointer" onclick="app.showList()">
+                <div class="flex items-center gap-2">
+                    <span class="imperial-header text-xl text-white">Imperial Sweat-Shop</span>
+                    <span class="sweat-badge">GATEKEEPERS ONLY</span>
+                </div>
+                <span class="text-[10px] text-gray-500 tracking-[0.3em] font-mono">POWERED BY SBACIX — EST. 2024</span>
             </div>
-            <div class="text-xs font-mono text-[var(--text-muted)]" id="db-stats">Loading Data...</div>
+            <div class="hidden md:block text-right">
+                <div class="text-[9px] uppercase tracking-widest text-gray-600 font-bold">Sweat Metric</div>
+                <div class="text-[var(--gold)] font-mono text-sm" id="db-stats">Synchronizing Assets...</div>
+            </div>
         </div>
     </nav>
 
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-8">
+    <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-10">
         <!-- List View -->
-        <div id="view-list" class="flex flex-col md:flex-row gap-8">
-            <aside class="w-full md:w-72 space-y-6">
+        <div id="view-list" class="flex flex-col lg:flex-row gap-10">
+            
+            <!-- Sidebar -->
+            <aside class="w-full lg:w-72 space-y-8 flex-shrink-0">
+                <!-- Search -->
                 <div>
-                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Search</label>
-                    <input type="text" id="filter-search" placeholder="Ingredient name..." class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-3 text-sm focus:border-[var(--accent)] outline-none">
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Archive Search</label>
+                    <input type="text" id="filter-search" placeholder="Search by name..." class="matte-input w-full p-3 rounded text-sm">
                 </div>
 
+                <!-- Level Range Slider -->
                 <div>
-                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Identifications</label>
-                    <div class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-3">
-                        <input type="text" id="stat-search" placeholder="Filter stats..." class="w-full bg-black/20 border-b border-[var(--border-color)] mb-3 pb-1 text-xs outline-none">
-                        <div id="filter-identifications" class="max-h-60 overflow-y-auto space-y-2 text-sm"></div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Combat Level</label>
+                        <span class="text-xs text-[var(--gold)] font-mono" id="lvl-display">1 - 130</span>
+                    </div>
+                    <div class="range-slider-container">
+                        <div id="range-progress" class="range-slider-progress"></div>
+                        <input type="range" id="lvl-min" min="1" max="130" value="1" class="range-input">
+                        <input type="range" id="lvl-max" min="1" max="130" value="130" class="range-input">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Tier</label>
-                        <select id="filter-tier" class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 text-xs">
-                            <option value="">All</option>
-                            <option value="Normal">Normal</option><option value="Unique">Unique</option><option value="Rare">Rare</option>
-                            <option value="Legendary">Legendary</option><option value="Fabled">Fabled</option><option value="Mythic">Mythic</option>
-                        </select>
+                <!-- Identifications -->
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Gated Properties</label>
+                    <div class="matte-card rounded p-3">
+                        <input type="text" id="stat-search" placeholder="Filter traits..." class="w-full bg-black/50 border-b border-[var(--border-matte)] mb-3 pb-1 text-[10px] outline-none text-[var(--gold)]">
+                        <div id="filter-identifications" class="max-h-64 overflow-y-auto space-y-1 text-xs">
+                            <!-- Stats injected here -->
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Level</label>
-                        <input type="number" id="filter-lvl-min" placeholder="Min" class="w-full bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg p-2 text-xs">
-                    </div>
+                </div>
+
+                <!-- Tier Menu -->
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Quality Tier</label>
+                    <select id="filter-tier" class="matte-input w-full p-3 rounded text-sm cursor-pointer">
+                        <option value="">All Tiers</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Unique">Unique</option>
+                        <option value="Rare">Rare</option>
+                        <option value="Legendary">Legendary</option>
+                        <option value="Fabled">Fabled</option>
+                        <option value="Mythic">Mythic</option>
+                    </select>
                 </div>
             </aside>
 
+            <!-- Main Grid -->
             <div class="flex-grow">
-                <div id="results-count" class="text-sm font-bold text-gray-500 mb-6 uppercase tracking-widest"></div>
-                <div id="ingredient-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="h-[1px] bg-[var(--border-matte)] flex-grow"></div>
+                    <span class="text-[10px] font-bold text-gray-600 uppercase tracking-[0.3em]" id="results-text">Initializing Archives...</span>
+                    <div class="h-[1px] bg-[var(--border-matte)] flex-grow"></div>
+                </div>
+                <div id="ingredient-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- Cards -->
+                </div>
             </div>
         </div>
 
         <!-- Detail View -->
-        <div id="view-detail" class="hidden animate-in fade-in duration-300">
-            <button onclick="app.showList()" class="mb-8 flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-white transition-colors">
-                <i class="ph ph-caret-left"></i> BACK TO DATABASE
+        <div id="view-detail" class="hidden max-w-5xl mx-auto">
+            <button onclick="app.showList()" class="mb-10 text-[10px] font-black tracking-[0.2em] text-gray-500 hover:text-[var(--gold)] transition-all">
+                &lsaquo; RETURN TO MASTER LIST
             </button>
             <div id="detail-container"></div>
         </div>
     </main>
 
-    <div id="toast" class="fixed bottom-8 right-8 bg-white text-black px-6 py-3 rounded-full font-bold shadow-2xl opacity-0 transition-opacity pointer-events-none">Copied!</div>
+    <div id="toast" class="fixed bottom-10 right-10 bg-[var(--gold)] text-black px-8 py-4 font-black text-xs uppercase tracking-widest rounded shadow-2xl opacity-0 transition-opacity">Coord Secured</div>
 
     <script>
         const app = {
@@ -97,54 +198,86 @@
                 try {
                     const res = await fetch('public/data/ingredients.json');
                     this.data = await res.json();
-                    document.getElementById('db-stats').innerText = `${this.data.length} INGREDIENTS LOADED`;
+                    document.getElementById('db-stats').innerText = `${this.data.length} ASSETS LOGGED`;
                     this.buildFilters();
                     this.setupListeners();
                     this.applyFilters();
-                } catch(e) { document.getElementById('results-count').innerText = "Data file not found. Run the GitHub Action!"; }
+                } catch(e) { 
+                    document.getElementById('results-text').innerText = "CONNECTION BREACHED"; 
+                }
             },
             buildFilters: function() {
                 const stats = new Set();
                 this.data.forEach(i => i.identifications && Object.keys(i.identifications).forEach(s => stats.add(s)));
                 document.getElementById('filter-identifications').innerHTML = Array.from(stats).sort().map(s => `
-                    <label class="flex items-center gap-2 cursor-pointer hover:text-[var(--accent)] stat-row">
-                        <input type="checkbox" value="${s}" class="stat-filter custom-checkbox">
-                        <span class="truncate stat-name">${s.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 transition-all rounded">
+                        <input type="checkbox" value="${s}" class="stat-filter rounded-none border-[var(--border-matte)] bg-black text-[var(--gold)] focus:ring-0">
+                        <span class="truncate text-gray-500 text-[11px]">${s.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
                     </label>
                 `).join('');
             },
             setupListeners: function() {
-                ['filter-search', 'filter-tier', 'filter-lvl-min', 'filter-identifications'].forEach(id => {
-                    document.getElementById(id).addEventListener('input', () => this.applyFilters());
+                const triggerUpdate = () => {
+                    this.updateSliderUI();
+                    this.applyFilters();
+                };
+
+                ['filter-search', 'filter-tier', 'lvl-min', 'lvl-max', 'filter-identifications'].forEach(id => {
+                    document.getElementById(id).addEventListener('input', triggerUpdate);
                 });
+
                 document.getElementById('stat-search').addEventListener('input', (e) => {
                     const val = e.target.value.toLowerCase();
-                    document.querySelectorAll('.stat-row').forEach(r => r.style.display = r.innerText.toLowerCase().includes(val) ? 'flex' : 'none');
+                    document.querySelectorAll('.stat-filter').forEach(r => {
+                        const label = r.closest('label');
+                        label.style.display = label.innerText.toLowerCase().includes(val) ? 'flex' : 'none';
+                    });
                 });
+
+                this.updateSliderUI();
+            },
+            updateSliderUI: function() {
+                const min = document.getElementById('lvl-min');
+                const max = document.getElementById('lvl-max');
+                const prog = document.getElementById('range-progress');
+                const disp = document.getElementById('lvl-display');
+                
+                // Ensure min doesn't cross max
+                if(parseInt(min.value) > parseInt(max.value)) { min.value = max.value; }
+                
+                const percent1 = (min.value / 130) * 100;
+                const percent2 = (max.value / 130) * 100;
+                
+                prog.style.left = percent1 + "%";
+                prog.style.width = (percent2 - percent1) + "%";
+                disp.innerText = `${min.value} - ${max.value}`;
             },
             applyFilters: function() {
                 const search = document.getElementById('filter-search').value.toLowerCase();
                 const tier = document.getElementById('filter-tier').value;
-                const lvl = parseInt(document.getElementById('filter-lvl-min').value) || 0;
+                const min = parseInt(document.getElementById('lvl-min').value);
+                const max = parseInt(document.getElementById('lvl-max').value);
                 const checked = Array.from(document.querySelectorAll('.stat-filter:checked')).map(c => c.value);
 
                 const filtered = this.data.filter(i => {
+                    const iLvl = i.requirements?.level || 0;
                     if(search && !i.name.toLowerCase().includes(search)) return false;
                     if(tier && i.tier !== tier) return false;
-                    if(lvl && (i.requirements?.level || 0) < lvl) return false;
+                    if(iLvl < min || iLvl > max) return false;
                     if(checked.length > 0 && (!i.identifications || !checked.every(s => i.identifications[s]))) return false;
                     return true;
                 });
 
-                document.getElementById('results-count').innerText = `${filtered.length} Results`;
-                document.getElementById('ingredient-grid').innerHTML = filtered.slice(0, 60).map(i => `
-                    <div class="bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-5 cursor-pointer card-hover transition-all" onclick="app.showDetail('${i.internalName}')">
+                document.getElementById('results-text').innerText = `${filtered.length} ASSETS VISIBLE`;
+                document.getElementById('ingredient-grid').innerHTML = filtered.slice(0, 36).map(i => `
+                    <div class="matte-card rounded p-6 cursor-pointer hover:border-[var(--gold)] transition-all group" onclick="app.showDetail('${i.internalName}')">
                         <div class="flex justify-between items-start mb-4">
-                            <h3 class="font-bold text-lg tier-${i.tier}">${i.name}</h3>
-                            <span class="text-[10px] font-bold text-gray-600 bg-black/30 px-2 py-1 rounded">LVL ${i.requirements?.level || 0}</span>
+                            <h3 class="font-black text-sm uppercase tracking-wider tier-${i.tier} group-hover:text-white">${i.name}</h3>
+                            <span class="font-mono text-[10px] text-gray-500">LVL ${i.requirements?.level || 0}</span>
                         </div>
-                        <div class="text-[10px] text-gray-500 uppercase font-black tracking-widest truncate">
-                            ${i.dropMeta ? `Source: ${i.dropMeta.name}` : 'Source Unknown'}
+                        <div class="text-[9px] text-gray-600 font-bold uppercase tracking-widest flex items-center gap-2">
+                            <i class="ph ph-shield-chevron"></i>
+                            <span class="truncate">${i.dropMeta ? i.dropMeta.name : 'REDACTED ORIGIN'}</span>
                         </div>
                     </div>
                 `).join('');
@@ -153,56 +286,55 @@
                 const i = this.data.find(x => x.internalName === name);
                 document.getElementById('view-list').classList.add('hidden');
                 document.getElementById('view-detail').classList.remove('hidden');
+                window.scrollTo(0,0);
                 
                 let idHtml = Object.entries(i.identifications || {}).map(([k, v]) => `
-                    <div class="flex justify-between py-1 border-b border-white/5">
-                        <span class="text-sm text-gray-400 capitalize">${k.replace(/([A-Z])/g, ' $1')}</span>
-                        <span class="font-mono text-sm ${v.maximum < 0 ? 'text-red-400' : 'text-green-400'}">${v.minimum || v} to ${v.maximum || v}</span>
+                    <div class="flex justify-between py-3 border-b border-[var(--border-matte)]">
+                        <span class="text-[11px] text-gray-500 uppercase font-bold tracking-tighter">${k.replace(/([A-Z])/g, ' $1')}</span>
+                        <span class="font-mono text-xs ${v.maximum < 0 ? 'text-red-500' : 'text-[var(--gold)]'}">${v.minimum || v} to ${v.maximum || v}</span>
                     </div>
                 `).join('');
 
-                // WYNNTILS STYLE SOURCE BOX
-                let sourceBox = `
-                    <div class="bg-black/40 rounded-xl p-6 border border-white/5">
-                        <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Obtain Information</h4>
-                        ${i.dropMeta ? `
-                            <div class="space-y-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
-                                        <i class="ph-fill ph-skull text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <div class="text-[10px] font-bold text-gray-500 uppercase">Specific Mob Drop</div>
-                                        <div class="text-lg font-bold text-white">${i.dropMeta.name}</div>
-                                    </div>
-                                </div>
-                                <div class="bg-white/5 rounded-lg p-4 flex items-center justify-between">
-                                    <div class="font-mono text-[var(--accent)] text-sm italic">${i.dropMeta.coordinates.join(', ')}</div>
-                                    <button onclick="app.copy('/tp ${i.dropMeta.coordinates.join(' ')}')" class="bg-[var(--accent)] text-black font-black text-[10px] px-4 py-2 rounded uppercase tracking-widest hover:brightness-110 transition-all">Copy /TP</button>
-                                </div>
-                                ${i.nearestPlace ? `<div class="text-[10px] text-gray-500 italic"><i class="ph ph-map-pin"></i> Located near ${i.nearestPlace.name}</div>` : ''}
-                            </div>
-                        ` : `<div class="text-gray-500 italic text-sm">No official drop source listed. Likely a gathering material or global loot drop.</div>`}
-                    </div>
-                `;
-
                 document.getElementById('detail-container').innerHTML = `
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                        <div>
-                            <h1 class="text-5xl font-black mb-2 tier-${i.tier}">${i.name}</h1>
-                            <div class="flex gap-4 mb-8 text-xs font-bold uppercase tracking-widest text-gray-500">
-                                <span>${i.tier} Tier</span>
-                                <span>•</span>
-                                <span>Level ${i.requirements?.level || 0}</span>
+                    <div class="matte-container p-12 rounded">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                            <div>
+                                <h1 class="text-6xl font-black mb-4 tracking-tighter text-white">${i.name}</h1>
+                                <div class="flex gap-4 mb-12">
+                                    <span class="bg-[var(--gold)] text-black px-3 py-1 text-[10px] font-black uppercase">Class ${i.tier}</span>
+                                    <span class="bg-white/10 text-white px-3 py-1 text-[10px] font-black uppercase">Level ${i.requirements?.level || 0}</span>
+                                </div>
+                                
+                                <div class="space-y-1">${idHtml || '<div class="text-gray-600 italic">Static object. No imbued traits.</div>'}</div>
                             </div>
-                            <div class="space-y-1">${idHtml || '<div class="text-gray-600 italic">No Identifications</div>'}</div>
-                        </div>
-                        <div class="space-y-8">
-                            ${sourceBox}
-                            <div class="bg-white/5 rounded-xl p-6">
-                                <h4 class="text-[10px] font-black text-gray-500 uppercase mb-3">Required For</h4>
-                                <div class="flex flex-wrap gap-2">
-                                    ${(i.requirements?.skills || []).map(s => `<span class="bg-white/10 px-3 py-1 rounded text-[10px] font-bold">${s}</span>`).join('')}
+
+                            <div class="space-y-8">
+                                <div class="matte-card p-8 rounded">
+                                    <h4 class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-6">Extraction Point</h4>
+                                    ${i.dropMeta ? `
+                                        <div class="space-y-6">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-12 h-12 bg-red-900/20 border border-red-900/50 flex items-center justify-center text-[var(--crimson)]">
+                                                    <i class="ph-fill ph-skull text-2xl"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-[9px] font-bold text-gray-600 uppercase">Target Entity</div>
+                                                    <div class="text-xl font-black text-white uppercase italic">${i.dropMeta.name}</div>
+                                                </div>
+                                            </div>
+                                            <div class="bg-black border border-[var(--border-matte)] p-4 flex items-center justify-between">
+                                                <div class="font-mono text-[var(--gold)] text-sm tracking-widest">${i.dropMeta.coordinates.join(', ')}</div>
+                                                <button onclick="app.copy('/tp ${i.dropMeta.coordinates.join(' ')}')" class="btn-imperial px-6 py-2 rounded-sm text-[9px]">Copy /TP</button>
+                                            </div>
+                                            ${i.nearestPlace ? `<div class="text-[9px] text-gray-600 font-bold uppercase tracking-wider"><i class="ph ph-map-pin"></i> Detected near ${i.nearestPlace.name}</div>` : ''}
+                                        </div>
+                                    ` : `<div class="text-gray-600 italic text-sm">Source data restricted or global. Discovery via standard exploration.</div>`}
+                                </div>
+                                <div class="p-6 border border-white/5 bg-white/[0.02]">
+                                    <h4 class="text-[9px] font-black text-gray-600 uppercase mb-3">Required Skillsets</h4>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${(i.requirements?.skills || []).map(s => `<span class="bg-black px-4 py-2 text-[9px] font-bold text-white uppercase border border-[var(--border-matte)]">${s}</span>`).join('')}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -212,6 +344,7 @@
             showList: function() {
                 document.getElementById('view-detail').classList.add('hidden');
                 document.getElementById('view-list').classList.remove('hidden');
+                window.scrollTo(0,0);
             },
             copy: function(txt) {
                 const el = document.createElement('textarea'); el.value = txt; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
