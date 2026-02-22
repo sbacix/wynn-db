@@ -1,0 +1,33 @@
+name: Refresh Ingredient Data
+
+on:
+  schedule:
+    # Runs every day at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Allows you to run this manually from the Actions tab
+
+jobs:
+  refresh-and-commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to commit changes back to the repo
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Data Refresh Script
+        run: node scripts/refresh-data.js
+
+      - name: Commit and Push Changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add public/data/ingredients.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(data): auto-update ingredient database" && git push)
