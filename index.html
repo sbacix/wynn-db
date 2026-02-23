@@ -27,12 +27,10 @@
 
         .mono { font-family: 'JetBrains Mono', monospace; }
 
-        /* Solid Containers */
         .matte-container { background-color: var(--surface); border: 1px solid var(--border); }
-        .matte-card { background-color: var(--surface); border: 1px solid var(--border); transition: all 0.15s ease-out; }
+        .matte-card { background-color: var(--surface); border: 1px solid var(--border); transition: all 0.15s ease-out; border-left: 4px solid #1e2530; }
         .matte-card:hover { border-color: var(--accent); }
 
-        /* Custom Inputs */
         .matte-input { 
             background-color: #05070a; 
             border: 1px solid var(--border); 
@@ -42,7 +40,6 @@
         }
         .matte-input:focus { border-color: var(--accent); }
 
-        /* Level Slider Styling */
         .range-slider-container { position: relative; height: 4px; background: #1e2530; border-radius: 2px; margin: 15px 0; }
         .range-slider-progress { position: absolute; height: 100%; background: var(--accent); border-radius: 2px; }
         .range-input { position: absolute; width: 100%; top: -7px; background: none; pointer-events: none; -webkit-appearance: none; }
@@ -51,20 +48,12 @@
             cursor: pointer; pointer-events: auto; -webkit-appearance: none; border: 2px solid var(--bg-deep); 
         }
 
-        /* Tier Left Borders */
-        .tier-Mythic { border-left: 4px solid #a855f7 !important; }
-        .tier-Fabled { border-left: 4px solid #ef4444 !important; }
-        .tier-Legendary { border-left: 4px solid #3b82f6 !important; }
-        .tier-Rare { border-left: 4px solid #ec4899 !important; }
-        .tier-Unique { border-left: 4px solid #eab308 !important; }
-        .tier-Normal { border-left: 4px solid #94a3b8 !important; }
-
-        /* Text colors for names */
-        .text-Mythic { color: #d8b4fe; }
-        .text-Fabled { color: #fca5a5; }
-        .text-Legendary { color: #93c5fd; }
-        .text-Rare { color: #f9a8d4; }
-        .text-Unique { color: #fde047; }
+        .tier-Mythic { border-left-color: #a855f7 !important; }
+        .tier-Fabled { border-left-color: #ef4444 !important; }
+        .tier-Legendary { border-left-color: #3b82f6 !important; }
+        .tier-Rare { border-left-color: #ec4899 !important; }
+        .tier-Unique { border-left-color: #eab308 !important; }
+        .tier-Normal { border-left-color: #94a3b8 !important; }
 
         .sweat-badge { background: #991b1b; color: white; font-size: 8px; padding: 2px 6px; font-weight: 800; letter-spacing: 0.1em; }
         
@@ -81,11 +70,21 @@
             transition: filter 0.2s;
         }
         .btn-imperial:hover { filter: brightness(1.2); }
+        
+        .loading-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-deep); z-index: 1000; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- NAVIGATION -->
+    <div id="loader" class="loading-screen">
+        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p id="loader-text" class="text-[10px] font-bold tracking-[0.4em] text-slate-500 uppercase">Synchronizing Grids...</p>
+    </div>
+
     <nav class="sticky top-0 z-50 bg-[#0f1218] border-b border-[#1e2530] px-6 py-4">
         <div class="max-w-[1600px] mx-auto flex items-center justify-between">
             <div class="flex items-center gap-4 cursor-pointer" onclick="app.showList()">
@@ -97,20 +96,18 @@
                         <h1 class="text-xl font-bold tracking-tight leading-none text-white uppercase">Imperial Sweat-Shop</h1>
                         <span class="sweat-badge">GATED KNOWLEDGE</span>
                     </div>
-                    <p class="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-[0.2em] mono">INTEL PROTOCOL v2.2</p>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-[0.2em] mono">INTEL PROTOCOL v3.0</p>
                 </div>
             </div>
             <div id="db-stats" class="hidden md:block mono text-[10px] text-blue-500 font-bold uppercase tracking-widest">
-                Connecting to archives...
+                0 ASSETS LOGGED
             </div>
         </div>
     </nav>
 
     <main class="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
         
-        <!-- LIST VIEW -->
         <div id="view-list" class="flex flex-col lg:flex-row gap-10">
-            <!-- SIDEBAR FILTERS -->
             <aside class="w-full lg:w-72 space-y-8 flex-shrink-0">
                 <div class="space-y-4">
                     <div>
@@ -131,53 +128,40 @@
                     </div>
 
                     <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Gated Properties</label>
-                        <div class="matte-container rounded-xl p-3">
-                            <input type="text" id="stat-search" placeholder="Filter traits..." class="w-full bg-transparent border-b border-[#1e2530] mb-3 pb-1 text-[10px] outline-none text-blue-400 font-bold">
-                            <div id="filter-identifications" class="max-h-64 overflow-y-auto space-y-1 pr-2">
-                                <!-- Filter traits injected here -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Rarity Grade</label>
                         <select id="filter-tier" class="matte-input w-full p-3 rounded-lg text-xs font-bold cursor-pointer appearance-none">
                             <option value="">All Tiers</option>
-                            <option value="Normal">Normal</option>
-                            <option value="Unique">Unique</option>
-                            <option value="Rare">Rare</option>
-                            <option value="Legendary">Legendary</option>
-                            <option value="Fabled">Fabled</option>
                             <option value="Mythic">Mythic</option>
+                            <option value="Fabled">Fabled</option>
+                            <option value="Legendary">Legendary</option>
+                            <option value="Rare">Rare</option>
+                            <option value="Unique">Unique</option>
                         </select>
+                    </div>
+
+                    <div class="flex items-center gap-2 mt-4">
+                        <input type="checkbox" id="filter-coords" class="accent-blue-500">
+                        <label for="filter-coords" class="text-[10px] font-bold text-slate-500 uppercase cursor-pointer">Only items with intel</label>
                     </div>
                 </div>
             </aside>
 
-            <!-- GRID AREA -->
             <div class="flex-1">
                 <div id="results-text" class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em] mb-8 pb-2 border-b border-[#1e2530]">
                     Awaiting commands...
                 </div>
-                <div id="ingredient-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    <!-- Cards injected here -->
-                </div>
+                <div id="ingredient-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
             </div>
         </div>
 
-        <!-- DETAIL VIEW -->
         <div id="view-detail" class="hidden max-w-5xl mx-auto">
             <button onclick="app.showList()" class="mb-10 text-[10px] font-bold tracking-[0.3em] text-slate-500 hover:text-white transition-all uppercase flex items-center gap-2">
                 <i class="fas fa-arrow-left"></i> Return to Archive
             </button>
-            <div id="detail-container">
-                <!-- Detail content injected here -->
-            </div>
+            <div id="detail-container"></div>
         </div>
     </main>
 
-    <!-- TOAST NOTIFICATION -->
     <div id="toast" class="fixed bottom-10 right-10 bg-blue-600 text-white px-8 py-4 font-bold text-xs uppercase tracking-widest rounded-lg shadow-2xl opacity-0 transition-all pointer-events-none z-[100]">
         Coordinates Copied
     </div>
@@ -185,46 +169,56 @@
     <script>
         const app = {
             data: [],
+            mergedDrops: {},
             init: async function() {
                 try {
-                    // Adjust path if needed for your environment
-                    const res = await fetch('public/data/ingredients.json');
-                    this.data = await res.json();
+                    const lText = document.getElementById('loader-text');
+                    
+                    lText.innerText = "ACCESSING WYNN API...";
+                    const apiRes = await fetch("https://api.wynncraft.com/v3/item/database?fullResult");
+                    const apiData = await apiRes.json();
+                    const rawItems = apiData.items || apiData;
+                    const itemArray = Object.entries(rawItems).map(([name, stats]) => ({
+                        name: stats.name || name,
+                        ...stats
+                    }));
+
+                    lText.innerText = "LOADING DROPS.JSON (32K)...";
+                    const dropsRes = await fetch("./drops.json").catch(() => null);
+                    const dropsJson = dropsRes && dropsRes.ok ? await dropsRes.json() : {};
+
+                    lText.innerText = "LOADING HTOI.JSON (2.5K)...";
+                    const htoiRes = await fetch("./htoi.json").catch(() => null);
+                    const htoiArray = htoiRes && htoiRes.ok ? await htoiRes.json() : [];
+
+                    lText.innerText = "MERGING INTELLIGENCE...";
+                    const combined = { ...dropsJson };
+                    if (Array.isArray(htoiArray)) {
+                        htoiArray.forEach(entry => {
+                            if (entry.name && entry.drops) {
+                                combined[entry.name] = [...(combined[entry.name] || []), ...entry.drops];
+                            }
+                        });
+                    }
+
+                    this.data = itemArray;
+                    this.mergedDrops = combined;
+                    
                     document.getElementById('db-stats').innerText = `${this.data.length.toLocaleString()} ASSETS LOGGED`;
-                    this.buildFilters();
+                    document.getElementById('loader').classList.add('hidden');
+                    
                     this.setupListeners();
                     this.applyFilters();
                 } catch(e) { 
-                    document.getElementById('results-text').innerText = "ARCHIVE SYNC ERROR"; 
+                    document.getElementById('loader-text').innerText = "FATAL SYNC ERROR";
                     console.error(e);
                 }
             },
 
-            buildFilters: function() {
-                const stats = new Set();
-                this.data.forEach(i => i.identifications && Object.keys(i.identifications).forEach(s => stats.add(s)));
-                document.getElementById('filter-identifications').innerHTML = Array.from(stats).sort().map(s => `
-                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded transition-colors group">
-                        <input type="checkbox" value="${s}" class="stat-filter accent-blue-500">
-                        <span class="truncate text-slate-500 text-[10px] font-bold uppercase group-hover:text-slate-300 transition-colors">${s.replace(/([A-Z])/g, ' $1')}</span>
-                    </label>
-                `).join('');
-            },
-
             setupListeners: function() {
                 const trigger = () => { this.updateSliderUI(); this.applyFilters(); };
-                ['filter-search', 'filter-tier', 'lvl-min', 'lvl-max'].forEach(id => {
+                ['filter-search', 'filter-tier', 'lvl-min', 'lvl-max', 'filter-coords'].forEach(id => {
                     document.getElementById(id).addEventListener('input', trigger);
-                });
-                
-                document.getElementById('filter-identifications').addEventListener('change', trigger);
-
-                document.getElementById('stat-search').addEventListener('input', (e) => {
-                    const val = e.target.value.toLowerCase();
-                    document.querySelectorAll('.stat-filter').forEach(r => {
-                        const label = r.closest('label');
-                        label.style.display = label.innerText.toLowerCase().includes(val) ? 'flex' : 'none';
-                    });
                 });
                 this.updateSliderUI();
             },
@@ -241,94 +235,76 @@
                 const search = document.getElementById('filter-search').value.toLowerCase(), 
                       tier = document.getElementById('filter-tier').value, 
                       min = parseInt(document.getElementById('lvl-min').value), 
-                      max = parseInt(document.getElementById('lvl-max').value), 
-                      checked = Array.from(document.querySelectorAll('.stat-filter:checked')).map(c => c.value);
+                      max = parseInt(document.getElementById('lvl-max').value),
+                      onlyCoords = document.getElementById('filter-coords').checked;
 
                 const filtered = this.data.filter(i => {
-                    const iLvl = i.requirements?.level || 0;
+                    const lvl = i.level || i.requirements?.level || 0;
                     if(search && !i.name.toLowerCase().includes(search)) return false;
                     if(tier && i.tier !== tier) return false;
-                    if(iLvl < min || iLvl > max) return false;
-                    if(checked.length > 0 && (!i.identifications || !checked.every(s => i.identifications[s]))) return false;
+                    if(lvl < min || lvl > max) return false;
+                    if(onlyCoords && (!this.mergedDrops[i.name] || this.mergedDrops[i.name].length === 0)) return false;
                     return true;
                 });
 
                 document.getElementById('results-text').innerText = `${filtered.length.toLocaleString()} ASSETS VISIBLE`;
-                document.getElementById('ingredient-grid').innerHTML = filtered.slice(0, 48).map(i => `
-                    <div class="matte-card rounded-xl p-6 cursor-pointer tier-${i.tier.replace(' ', '')} group" onclick="app.showDetail('${i.internalName}')">
-                        <div class="flex justify-between items-start mb-4">
-                            <h3 class="font-bold text-sm tracking-tight text-white group-hover:text-blue-400 transition-colors uppercase">${i.name}</h3>
-                            <span class="mono text-[9px] text-slate-500 bg-[#05070a] px-2 py-0.5 rounded">L${i.requirements?.level || 0}</span>
-                        </div>
-                        <div class="flex items-center justify-between mt-auto">
-                            <span class="text-[9px] font-black uppercase tracking-widest text-slate-600">${i.tier}</span>
-                            <div class="text-[9px] text-slate-500 font-bold flex items-center gap-1">
-                                <i class="fas fa-location-crosshairs opacity-40"></i>
-                                <span class="truncate max-w-[120px]">${i.communitySources ? i.communitySources[0].name : (i.dropMeta ? i.dropMeta.name : 'Unknown')}</span>
+                document.getElementById('ingredient-grid').innerHTML = filtered.slice(0, 48).map(i => {
+                    const drops = this.mergedDrops[i.name];
+                    const dropName = drops ? (drops[0].name || drops[0].type) : 'Unknown';
+                    return `
+                        <div class="matte-card rounded-xl p-6 cursor-pointer tier-${i.tier.replace(' ', '')} group" onclick="app.showDetail('${i.name.replace(/'/g, "\\'")}')">
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="font-bold text-sm tracking-tight text-white group-hover:text-blue-400 transition-colors uppercase">${i.name}</h3>
+                                <span class="mono text-[9px] text-slate-500 bg-[#05070a] px-2 py-0.5 rounded">L${i.level || 0}</span>
+                            </div>
+                            <div class="flex items-center justify-between mt-auto">
+                                <span class="text-[9px] font-black uppercase tracking-widest text-slate-600">${i.tier}</span>
+                                <div class="text-[9px] ${drops ? 'text-blue-400' : 'text-slate-700'} font-bold flex items-center gap-1">
+                                    <i class="fas fa-location-crosshairs opacity-40"></i>
+                                    <span class="truncate max-w-[120px]">${dropName}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             },
 
             showDetail: function(name) {
-                const i = this.data.find(x => x.internalName === name);
+                const i = this.data.find(x => x.name === name);
+                const drops = this.mergedDrops[name];
+                
                 document.getElementById('view-list').classList.add('hidden');
                 document.getElementById('view-detail').classList.remove('hidden');
                 window.scrollTo(0,0);
                 
-                let idHtml = Object.entries(i.identifications || {}).map(([k, v]) => {
-                    const min = v.min !== undefined ? v.min : (v.minimum !== undefined ? v.minimum : v);
-                    const max = v.max !== undefined ? v.max : (v.maximum !== undefined ? v.maximum : v);
-                    const isNegative = max < 0;
+                const idHtml = Object.entries(i.identifications || i.stats || {}).map(([k, v]) => {
+                    const val = typeof v === 'object' ? `${v.min || v.minimum} to ${v.max || v.maximum}` : v;
                     return `
                         <div class="flex justify-between py-2 border-b border-[#1e2530]">
                             <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">${k.replace(/([A-Z])/g, ' $1')}</span>
-                            <span class="mono text-xs ${isNegative ? 'text-red-400' : 'text-blue-400'} font-bold">${min === max ? min : `${min} to ${max}`}</span>
+                            <span class="mono text-xs text-blue-400 font-bold">${val}</span>
                         </div>
                     `;
                 }).join('');
 
-                const renderSource = (s) => {
-                    const type = s.type || 'Intel';
-                    const name = s.name || 'Unknown Target';
-                    const detail = s.details || {};
-                    const loc = detail.location || s.location || '';
-                    const desc = detail.description || s.description || '';
-                    const sss = detail.screenshots || s.screenshots || '';
-                    const coords = detail.coords || s.coords || (i.dropMeta ? {x: i.dropMeta.coordinates[0], z: i.dropMeta.coordinates[2]} : null);
-                    const price = detail.price || s.price || null;
-
+                const renderSource = (d) => {
+                    const detail = d.details || {};
+                    const coords = detail.coords || d.coords || null;
                     return `
                         <div class="matte-card p-6 rounded-xl mb-4 border-l-4 border-blue-600 bg-[#0a0d12]">
-                            <div class="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">${type}</div>
-                            <div class="text-lg font-bold text-white uppercase mb-2 italic tracking-tight">${name}</div>
-                            
-                            ${desc ? `<p class="text-xs text-slate-400 mb-4 bg-black/40 p-3 italic rounded border border-white/5 leading-relaxed">"${desc}"</p>` : ''}
-                            
-                            ${loc ? `<div class="text-[10px] text-blue-400 uppercase font-bold mb-3 flex items-center gap-2"><i class="fas fa-map-location-dot"></i> ${loc}</div>` : ''}
-                            
-                            ${coords && coords.x ? `
+                            <div class="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">${d.type || 'Intel'}</div>
+                            <div class="text-lg font-bold text-white uppercase mb-2 italic tracking-tight">${d.name || 'Unknown'}</div>
+                            ${detail.description ? `<p class="text-xs text-slate-400 mb-4 bg-black/40 p-3 italic rounded leading-relaxed">"${detail.description}"</p>` : ''}
+                            ${detail.location || d.location ? `<div class="text-[10px] text-blue-400 uppercase font-bold mb-3 flex items-center gap-2"><i class="fas fa-map-location-dot"></i> ${detail.location || d.location}</div>` : ''}
+                            ${coords ? `
                                 <div class="bg-[#05070a] p-4 flex items-center justify-between border border-[#1e2530] rounded-lg mt-4">
-                                    <span class="mono text-blue-400 font-bold text-xs">TP: ${coords.x}, ${coords.z}</span>
-                                    <button onclick="app.copy('/tp ${coords.x} 100 ${coords.z}')" class="btn-imperial px-4 py-2 rounded">COPY COMMAND</button>
+                                    <span class="mono text-blue-400 font-bold text-xs">X: ${coords.x} Z: ${coords.z}</span>
+                                    <button onclick="app.copy('/tp ${coords.x} 100 ${coords.z}')" class="btn-imperial px-4 py-2 rounded">COPY TP</button>
                                 </div>
                             ` : ''}
-
-                            ${sss ? `<a href="${sss}" target="_blank" class="mt-4 inline-block text-[9px] font-black text-slate-500 hover:text-white underline tracking-[0.2em] transition-all">VIEW SCREENSHOT &rsaquo;</a>` : ''}
                         </div>
                     `;
                 };
-
-                let sourcesHtml = '<div class="text-slate-600 italic text-xs py-10 text-center border border-dashed border-[#1e2530] rounded-xl">No field intel available for this asset.</div>';
-                const allSources = [];
-                if (i.communitySources) i.communitySources.forEach(s => allSources.push(s));
-
-                if (allSources.length > 0) {
-                    sourcesHtml = allSources.map(s => renderSource(s)).join('');
-                } else if (i.dropMeta) {
-                    sourcesHtml = renderSource({ type: i.dropMeta.type, name: i.dropMeta.name });
-                }
 
                 document.getElementById('detail-container').innerHTML = `
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -338,18 +314,18 @@
                                 <h1 class="text-5xl font-bold mb-4 tracking-tighter text-white uppercase italic">${i.name}</h1>
                                 <div class="flex gap-4">
                                     <span class="bg-[#1e2530] text-slate-300 px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded">${i.tier}</span>
-                                    <span class="border border-[#1e2530] text-slate-500 px-3 py-1 text-[9px] font-black rounded mono">L${i.requirements?.level || 0}</span>
+                                    <span class="border border-[#1e2530] text-slate-500 px-3 py-1 text-[9px] font-black rounded mono">L${i.level || 0}</span>
                                 </div>
                             </div>
                             <div class="space-y-1">
                                 <h4 class="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Identification Protocol</h4>
-                                ${idHtml || '<div class="text-slate-700 italic text-sm">Static asset. No imbued properties.</div>'}
+                                ${idHtml || '<div class="text-slate-700 italic text-sm">No imbued properties found.</div>'}
                             </div>
                         </div>
                         <div class="space-y-8">
                             <h4 class="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">Field Intelligence</h4>
                             <div class="max-h-[700px] overflow-y-auto pr-4 space-y-4">
-                                ${sourcesHtml}
+                                ${drops ? drops.map(d => renderSource(d)).join('') : '<div class="text-slate-600 italic text-xs py-10 text-center border border-dashed border-[#1e2530] rounded-xl">Registry entry contains no specific mob intel.</div>'}
                             </div>
                         </div>
                     </div>
