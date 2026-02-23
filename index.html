@@ -96,11 +96,11 @@
                         <h1 class="text-xl font-bold tracking-tight leading-none text-white uppercase">Imperial Sweat-Shop</h1>
                         <span class="sweat-badge">GATED KNOWLEDGE</span>
                     </div>
-                    <p class="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-[0.2em] mono">INTEL PROTOCOL v4.0</p>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-[0.2em] mono">INTEL PROTOCOL v5.0</p>
                 </div>
             </div>
-            <div id="db-stats" class="hidden md:block mono text-[10px] text-blue-500 font-bold uppercase tracking-widest">
-                FETCHING ARCHIVES...
+            <div id="db-stats" class="hidden md:block mono text-[10px] text-blue-500 font-bold uppercase tracking-widest text-right leading-relaxed">
+                0 ASSETS LOGGED
             </div>
         </div>
     </nav>
@@ -194,13 +194,33 @@
                     const htoiRes = await fetch("./htoi.json").catch(() => null);
                     const htoiArray = htoiRes && htoiRes.ok ? await htoiRes.json() : [];
 
-                    // 4. Merge logic
-                    status.innerText = "DECRYPTING INTEL...";
+                    // 4. Advanced Merge logic for SQL columns
+                    status.innerText = "UNPACKING INTELLIGENCE...";
                     const combined = { ...dropsJson };
+                    const sqlCols = ['mobs', 'gathering', 'dungeon', 'bossaltar', 'merchant', 'dungeonmerchant', 'quest', 'specialdrop', 'discovery', 'legendaryisland', 'hive', 'raid'];
+
                     if (Array.isArray(htoiArray)) {
                         htoiArray.forEach(entry => {
-                            if (entry.name && entry.drops) {
-                                combined[entry.name] = [...(combined[entry.name] || []), ...entry.drops];
+                            const name = entry.name;
+                            const extractedDrops = [];
+                            
+                            // Check if entry already has a "drops" list (from our converter)
+                            if (entry.drops) {
+                                extractedDrops.push(...entry.drops);
+                            } else {
+                                // Manual unpack of raw SQL columns
+                                sqlCols.forEach(col => {
+                                    if (entry[col] && entry[col] !== "NULL") {
+                                        try {
+                                            const parsed = typeof entry[col] === 'string' ? JSON.parse(entry[col]) : entry[col];
+                                            (Array.isArray(parsed) ? parsed : [parsed]).forEach(d => extractedDrops.push({ ...d, type: col }));
+                                        } catch (e) {}
+                                    }
+                                });
+                            }
+
+                            if (extractedDrops.length > 0) {
+                                combined[name] = [...(combined[name] || []), ...extractedDrops];
                             }
                         });
                     }
@@ -208,13 +228,13 @@
                     this.data = itemArray;
                     this.mergedDrops = combined;
                     
-                    document.getElementById('db-stats').innerText = `${this.data.length.toLocaleString()} ASSETS LOGGED`;
+                    document.getElementById('db-stats').innerText = `${this.data.length.toLocaleString()} ASSETS LOGGED\n${Object.keys(combined).length.toLocaleString()} DROP POINTS`;
                     document.getElementById('loader').classList.add('hidden');
                     
                     this.setupListeners();
                     this.applyFilters();
                 } catch(e) { 
-                    document.getElementById('loader-text').innerText = "ARCHIVE SYNC FAILED";
+                    document.getElementById('loader-text').innerText = "DATA DECRYPTION FAILED";
                     console.error(e);
                 }
             },
@@ -256,18 +276,18 @@
                 document.getElementById('results-text').innerText = `${filtered.length.toLocaleString()} ASSETS VISIBLE`;
                 document.getElementById('ingredient-grid').innerHTML = filtered.slice(0, 48).map(i => {
                     const drops = this.mergedDrops[i.name];
-                    const dropName = drops ? (drops[0].name || drops[0].type) : 'Redacted';
+                    const dropLabel = drops ? (drops[0].name || drops[0].type) : 'Redacted';
                     return `
                         <div class="matte-card rounded-xl p-6 cursor-pointer tier-${i.tier.replace(' ', '')} group" onclick="app.showDetail('${i.name.replace(/'/g, "\\'")}')">
                             <div class="flex justify-between items-start mb-4">
-                                <h3 class="font-bold text-sm tracking-tight text-white group-hover:text-blue-400 transition-colors uppercase">${i.name}</h3>
-                                <span class="mono text-[9px] text-slate-500 bg-[#05070a] px-2 py-0.5 rounded">L${i.level || 0}</span>
+                                <h3 class="font-bold text-sm tracking-tight text-white group-hover:text-blue-400 transition-colors uppercase truncate mr-2">${i.name}</h3>
+                                <span class="mono text-[9px] text-slate-500 bg-[#05070a] px-2 py-0.5 rounded flex-shrink-0">L${i.level || 0}</span>
                             </div>
                             <div class="flex items-center justify-between mt-auto">
                                 <span class="text-[9px] font-black uppercase tracking-widest text-slate-600">${i.tier}</span>
                                 <div class="text-[9px] ${drops ? 'text-blue-400' : 'text-slate-800'} font-bold flex items-center gap-1">
                                     <i class="fas fa-location-crosshairs opacity-40"></i>
-                                    <span class="truncate max-w-[120px]">${dropName}</span>
+                                    <span class="truncate max-w-[120px] uppercase tracking-tighter">${dropLabel}</span>
                                 </div>
                             </div>
                         </div>
@@ -283,7 +303,6 @@
                 document.getElementById('view-detail').classList.remove('hidden');
                 window.scrollTo(0,0);
                 
-                // Process Identification Values (Handle objects or numbers)
                 const idHtml = Object.entries(i.identifications || i.stats || {}).map(([k, v]) => {
                     const val = typeof v === 'object' ? `${v.min || v.minimum} to ${v.max || v.maximum}` : v;
                     return `
@@ -297,16 +316,25 @@
                 const renderSource = (d) => {
                     const detail = d.details || {};
                     const coords = detail.coords || d.coords || null;
+                    const price = detail.price || d.price || null;
                     return `
                         <div class="matte-card p-6 rounded-xl mb-4 border-l-4 border-blue-600 bg-[#0a0d12]">
                             <div class="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">${d.type || 'Intel'}</div>
                             <div class="text-lg font-bold text-white uppercase mb-2 italic tracking-tight">${d.name || 'Unknown'}</div>
-                            ${detail.description ? `<p class="text-xs text-slate-400 mb-4 bg-black/40 p-3 italic rounded leading-relaxed">"${detail.description}"</p>` : ''}
-                            ${detail.location || d.location ? `<div class="text-[10px] text-blue-400 uppercase font-bold mb-3 flex items-center gap-2"><i class="fas fa-map-location-dot"></i> ${detail.location || d.location}</div>` : ''}
+                            ${detail.description ? `<p class="text-xs text-slate-400 mb-4 bg-black/40 p-3 italic rounded leading-relaxed border border-white/5">"${detail.description}"</p>` : ''}
+                            ${detail.location || d.location ? `<div class="text-[10px] text-blue-400 uppercase font-bold mb-3 flex items-center gap-2"><i class="fas fa-map-location-dot text-red-500 opacity-50"></i> ${detail.location || d.location}</div>` : ''}
                             ${coords ? `
                                 <div class="bg-[#05070a] p-4 flex items-center justify-between border border-[#1e2530] rounded-lg mt-4">
-                                    <span class="mono text-blue-400 font-bold text-xs">X: ${coords.x} Z: ${coords.z}</span>
+                                    <span class="mono text-blue-400 font-bold text-xs">LOC: ${coords.x}, ${coords.z}</span>
                                     <button onclick="app.copy('/tp ${coords.x} 100 ${coords.z}')" class="btn-imperial px-4 py-2 rounded">COPY TP</button>
+                                </div>
+                            ` : ''}
+                            ${price ? `
+                                <div class="mt-4 pt-4 border-t border-white/5">
+                                    <div class="text-[8px] text-slate-600 font-black uppercase mb-2 tracking-widest">Trade Requisition</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${price.map(p => `<span class="text-[10px] bg-slate-800 px-2 py-1 rounded text-white font-bold">${p.quantity}x ${p.item}</span>`).join('')}
+                                    </div>
                                 </div>
                             ` : ''}
                         </div>
@@ -331,8 +359,8 @@
                         </div>
                         <div class="space-y-8">
                             <h4 class="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">Field Intelligence</h4>
-                            <div class="max-h-[700px] overflow-y-auto pr-4 space-y-4">
-                                ${drops ? drops.map(d => renderSource(d)).join('') : '<div class="text-slate-600 italic text-xs py-10 text-center border border-dashed border-[#1e2530] rounded-xl">Registry entry contains no specific mob intel.</div>'}
+                            <div class="max-h-[750px] overflow-y-auto pr-4 space-y-4">
+                                ${drops ? drops.map(d => renderSource(d)).join('') : '<div class="text-slate-600 italic text-xs py-10 text-center border border-dashed border-[#1e2530] rounded-xl uppercase tracking-widest">Registry entry contains no field intel.</div>'}
                             </div>
                         </div>
                     </div>
