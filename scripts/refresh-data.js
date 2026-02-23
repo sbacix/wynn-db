@@ -1,100 +1,67 @@
 /**
- * Wynncraft Ingredient Database Refresh Script
- * Fetches data from official Wynncraft API and Wynntils, normalizes it, and saves as static JSON.
- * Run via Node.js v18+
+ * Imperial Archive Utility: Data Refresh Script (Streamlined)
+ * Merges official Wynncraft API v3 data with the 32k line community_coords.json.
  */
 const fs = require('fs/promises');
 const path = require('path');
 
 const WYNN_API_URL = 'https://api.wynncraft.com/v3/item/database?fullResult';
-const WYNNTILS_PLACES_URL = 'https://raw.githubusercontent.com/Wynntils/Reference/main/locations/places.json';
-
-// Helper: Calculate 2D Euclidean distance (X and Z coordinates in Minecraft)
-function calculateDistance(x1, z1, x2, z2) {
-    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(z2 - z1, 2));
-}
 
 async function run() {
-    console.log("🚀 Starting data refresh...");
+    console.log("🚀 Imperial Bot Engaged (Streamlined Mode)...");
 
     try {
-        // 1. Fetch official items
-        console.log(`📥 Fetching Wynncraft items from ${WYNN_API_URL}...`);
+        // 1. Fetch official stats (Tier, Level, IDs)
+        console.log("📥 Fetching official Wynncraft v3 database...");
         const itemRes = await fetch(WYNN_API_URL);
-        if (!itemRes.ok) throw new Error(`Wynncraft API returned ${itemRes.status}`);
+        if (!itemRes.ok) throw new Error(`API error: ${itemRes.status}`);
         const itemsMap = await itemRes.json();
 
-        // 2. Fetch Wynntils places for location enrichment
-        console.log(`📥 Fetching Wynntils places...`);
-        let places = [];
+        // 2. Load Community Coords (The 32k line file)
+        let communityData = {};
         try {
-            const placesRes = await fetch(WYNNTILS_PLACES_URL);
-            if (placesRes.ok) {
-                const placesData = await placesRes.json();
-                // Normalize Wynntils places data structure (usually an array of objects)
-                places = Array.isArray(placesData) ? placesData : Object.values(placesData);
-            }
+            const commFile = await fs.readFile(path.join(__dirname, '../data/community_coords.json'), 'utf8');
+            communityData = JSON.parse(commFile);
+            console.log("📦 Community intel loaded successfully.");
         } catch (e) {
-            console.warn("⚠️ Could not fetch Wynntils places. Location enrichment will be skipped.", e.message);
+            console.warn("⚠️ data/community_coords.json not found. Check your file path.");
         }
 
-        // 3. Process and filter ingredients
-        console.log("⚙️ Processing ingredients...");
         const ingredients = [];
 
+        // 3. Process and Merge
         for (const [internalName, item] of Object.entries(itemsMap)) {
-            // Robust identification of ingredients
-            const isIngredient = 
-                (item.requirements && item.requirements.skills && item.requirements.skills.length > 0) ||
-                item.consumableOnlyIDs || 
-                item.ingredientPositionModifiers;
-
+            // Check if item is an ingredient
+            const isIngredient = (item.requirements?.skills?.length > 0) || 
+                                 item.consumableOnlyIDs || 
+                                 item.ingredientPositionModifiers;
+            
             if (!isIngredient) continue;
 
-            // Enrich with nearest place if it drops from a mob/entity with coordinates
-            let nearestPlace = null;
-            if (item.dropMeta && item.dropMeta.coordinates && places.length > 0) {
-                const [dropX, dropY, dropZ] = item.dropMeta.coordinates;
-                let minDistance = Infinity;
+            const itemName = item.name || internalName;
 
-                for (const place of places) {
-                    if (place.x !== undefined && (place.z !== undefined || place.y !== undefined)) {
-                        const placeZ = place.z !== undefined ? place.z : place.y; // Sometimes Y is used as Z in older formats
-                        const dist = calculateDistance(dropX, dropZ, place.x, placeZ);
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            nearestPlace = { name: place.name, distance: Math.round(dist) };
-                        }
-                    }
-                }
-            }
+            // Priority: Use Community JSON intel, fallback to basic API dropMeta
+            const communitySources = communityData[itemName] || communityData[internalName] || null;
 
-            // Construct normalized ingredient object
             ingredients.push({
                 internalName: internalName,
-                name: item.name || internalName,
+                name: itemName,
                 tier: item.tier || "Normal",
                 requirements: item.requirements || {},
                 identifications: item.identifications || {},
-                consumableOnlyIDs: item.consumableOnlyIDs || {},
-                ingredientPositionModifiers: item.ingredientPositionModifiers || {},
-                dropMeta: item.dropMeta || null,
-                nearestPlace: nearestPlace,
-                icon: item.icon || null
+                communitySources: communitySources, 
+                dropMeta: item.dropMeta || null
             });
         }
 
-        // 4. Save to static JSON file
+        // 4. Save Final Asset Package
         const outDir = path.join(__dirname, '..', 'public', 'data');
         await fs.mkdir(outDir, { recursive: true });
+        await fs.writeFile(path.join(outDir, 'ingredients.json'), JSON.stringify(ingredients));
         
-        const outFile = path.join(outDir, 'ingredients.json');
-        await fs.writeFile(outFile, JSON.stringify(ingredients, null, 2));
-        
-        console.log(`✅ Successfully saved ${ingredients.length} ingredients to ${outFile}`);
-
+        console.log(`✅ Success. ${ingredients.length} assets logged in the Imperial Archive.`);
     } catch (error) {
-        console.error("❌ Data refresh failed:", error);
+        console.error("❌ Critical failure during data synchronization:", error);
         process.exit(1);
     }
 }
