@@ -83,6 +83,7 @@
     <div id="loader" class="loading-screen">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
         <p id="loader-text" class="text-[10px] font-bold tracking-[0.4em] text-slate-500 uppercase text-center px-4">Initializing Data Stream...</p>
+        <div id="loader-details" class="mt-4 font-mono text-[9px] text-slate-700 uppercase space-y-1"></div>
     </div>
 
     <nav class="sticky top-0 z-50 bg-[#0f1218] border-b border-[#1e2530] px-6 py-4">
@@ -96,7 +97,7 @@
                         <h1 class="text-xl font-bold tracking-tight leading-none text-white uppercase">Imperial Sweat-Shop</h1>
                         <span class="sweat-badge">GATED KNOWLEDGE</span>
                     </div>
-                    <p class="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-[0.2em] mono">INTEL PROTOCOL v5.0</p>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-[0.2em] mono">INTEL PROTOCOL v5.1</p>
                 </div>
             </div>
             <div id="db-stats" class="hidden md:block mono text-[10px] text-blue-500 font-bold uppercase tracking-widest text-right leading-relaxed">
@@ -106,7 +107,6 @@
     </nav>
 
     <main class="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto w-full">
-        
         <div id="view-list" class="flex flex-col lg:flex-row gap-10">
             <aside class="w-full lg:w-72 space-y-8 flex-shrink-0">
                 <div class="space-y-4">
@@ -170,45 +170,76 @@
         const app = {
             data: [],
             mergedDrops: {},
+            log: function(msg, color='text-slate-700') {
+                const details = document.getElementById('loader-details');
+                const line = document.createElement('div');
+                line.className = color;
+                line.innerText = `> ${msg}`;
+                details.appendChild(line);
+            },
             init: async function() {
                 try {
                     const status = document.getElementById('loader-text');
-                    
+                    let apiItems = [];
+                    let localDrops = {};
+                    let htoiData = [];
+
                     // 1. Fetch live items from Wynncraft
                     status.innerText = "ACCESSING WYNN API...";
-                    const apiRes = await fetch("https://api.wynncraft.com/v3/item/database?fullResult");
-                    const apiData = await apiRes.json();
-                    const rawItems = apiData.items || apiData;
-                    const itemArray = Object.entries(rawItems).map(([name, stats]) => ({
-                        name: stats.name || name,
-                        ...stats
-                    }));
+                    try {
+                        const apiRes = await fetch("https://api.wynncraft.com/v3/item/database?fullResult");
+                        if (!apiRes.ok) throw new Error("API Offline");
+                        const apiData = await apiRes.json();
+                        const rawItems = apiData.items || apiData;
+                        apiItems = Object.entries(rawItems).map(([name, stats]) => ({
+                            name: stats.name || name,
+                            ...stats
+                        }));
+                        this.log(`API CONNECTED: ${apiItems.length} ITEMS`, 'text-blue-500');
+                    } catch(e) {
+                        this.log("API CONNECTION FAILED - USING LOCAL FALLBACK", "text-red-500");
+                    }
 
                     // 2. Fetch the 32,000 line file
-                    status.innerText = "LOADING DROPS.JSON (32K ENTRIES)...";
-                    const dropsRes = await fetch("./drops.json").catch(() => null);
-                    const dropsJson = dropsRes && dropsRes.ok ? await dropsRes.json() : {};
+                    status.innerText = "LOADING DROPS.JSON...";
+                    try {
+                        const dropsRes = await fetch("./drops.json");
+                        if (dropsRes.ok) {
+                            localDrops = await dropsRes.json();
+                            this.log(`DROPS ARCHIVE LOADED: ${Object.keys(localDrops).length} KEYS`, 'text-blue-500');
+                        } else {
+                            this.log("DROPS.JSON NOT FOUND", "text-yellow-500");
+                        }
+                    } catch(e) {
+                        this.log("DROPS.JSON SYNTAX ERROR - CHECK BRACKETS", "text-red-500");
+                    }
 
                     // 3. Fetch the converted SQL file
-                    status.innerText = "LOADING HTOI.JSON (2.5K ENTRIES)...";
-                    const htoiRes = await fetch("./htoi.json").catch(() => null);
-                    const htoiArray = htoiRes && htoiRes.ok ? await htoiRes.json() : [];
+                    status.innerText = "LOADING HTOI.JSON...";
+                    try {
+                        const htoiRes = await fetch("./htoi.json");
+                        if (htoiRes.ok) {
+                            htoiData = await htoiRes.json();
+                            this.log(`SQL INTEL LOADED: ${htoiData.length} ENTRIES`, 'text-blue-500');
+                        }
+                    } catch(e) {
+                        this.log("HTOI.JSON SYNTAX ERROR", "text-red-500");
+                    }
 
-                    // 4. Advanced Merge logic for SQL columns
-                    status.innerText = "UNPACKING INTELLIGENCE...";
-                    const combined = { ...dropsJson };
+                    // 4. Merge logic
+                    status.innerText = "MERGING DATABASES...";
+                    const combined = { ...localDrops };
                     const sqlCols = ['mobs', 'gathering', 'dungeon', 'bossaltar', 'merchant', 'dungeonmerchant', 'quest', 'specialdrop', 'discovery', 'legendaryisland', 'hive', 'raid'];
 
-                    if (Array.isArray(htoiArray)) {
-                        htoiArray.forEach(entry => {
+                    if (Array.isArray(htoiData)) {
+                        htoiData.forEach(entry => {
                             const name = entry.name;
+                            if (!name) return;
                             const extractedDrops = [];
                             
-                            // Check if entry already has a "drops" list (from our converter)
                             if (entry.drops) {
                                 extractedDrops.push(...entry.drops);
                             } else {
-                                // Manual unpack of raw SQL columns
                                 sqlCols.forEach(col => {
                                     if (entry[col] && entry[col] !== "NULL") {
                                         try {
@@ -225,16 +256,21 @@
                         });
                     }
 
-                    this.data = itemArray;
+                    this.data = apiItems;
                     this.mergedDrops = combined;
                     
                     document.getElementById('db-stats').innerText = `${this.data.length.toLocaleString()} ASSETS LOGGED\n${Object.keys(combined).length.toLocaleString()} DROP POINTS`;
-                    document.getElementById('loader').classList.add('hidden');
                     
-                    this.setupListeners();
-                    this.applyFilters();
+                    // Final delay to let the user see the log
+                    setTimeout(() => {
+                        document.getElementById('loader').classList.add('hidden');
+                        this.setupListeners();
+                        this.applyFilters();
+                    }, 500);
+
                 } catch(e) { 
-                    document.getElementById('loader-text').innerText = "DATA DECRYPTION FAILED";
+                    document.getElementById('loader-text').innerText = "CRITICAL BOOT ERROR";
+                    this.log(e.message, "text-red-500");
                     console.error(e);
                 }
             },
