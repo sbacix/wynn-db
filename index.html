@@ -82,7 +82,7 @@
 
     <div id="loader" class="loading-screen">
         <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p id="loader-text" class="text-[10px] font-bold tracking-[0.4em] text-slate-500 uppercase">Synchronizing Grids...</p>
+        <p id="loader-text" class="text-[10px] font-bold tracking-[0.4em] text-slate-500 uppercase text-center px-4">Initializing Data Stream...</p>
     </div>
 
     <nav class="sticky top-0 z-50 bg-[#0f1218] border-b border-[#1e2530] px-6 py-4">
@@ -96,11 +96,11 @@
                         <h1 class="text-xl font-bold tracking-tight leading-none text-white uppercase">Imperial Sweat-Shop</h1>
                         <span class="sweat-badge">GATED KNOWLEDGE</span>
                     </div>
-                    <p class="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-[0.2em] mono">INTEL PROTOCOL v3.0</p>
+                    <p class="text-[9px] text-slate-500 font-bold uppercase mt-1 tracking-[0.2em] mono">INTEL PROTOCOL v4.0</p>
                 </div>
             </div>
             <div id="db-stats" class="hidden md:block mono text-[10px] text-blue-500 font-bold uppercase tracking-widest">
-                0 ASSETS LOGGED
+                FETCHING ARCHIVES...
             </div>
         </div>
     </nav>
@@ -141,7 +141,7 @@
 
                     <div class="flex items-center gap-2 mt-4">
                         <input type="checkbox" id="filter-coords" class="accent-blue-500">
-                        <label for="filter-coords" class="text-[10px] font-bold text-slate-500 uppercase cursor-pointer">Only items with intel</label>
+                        <label for="filter-coords" class="text-[10px] font-bold text-slate-500 uppercase cursor-pointer">Only items with Intel</label>
                     </div>
                 </div>
             </aside>
@@ -172,9 +172,10 @@
             mergedDrops: {},
             init: async function() {
                 try {
-                    const lText = document.getElementById('loader-text');
+                    const status = document.getElementById('loader-text');
                     
-                    lText.innerText = "ACCESSING WYNN API...";
+                    // 1. Fetch live items from Wynncraft
+                    status.innerText = "ACCESSING WYNN API...";
                     const apiRes = await fetch("https://api.wynncraft.com/v3/item/database?fullResult");
                     const apiData = await apiRes.json();
                     const rawItems = apiData.items || apiData;
@@ -183,15 +184,18 @@
                         ...stats
                     }));
 
-                    lText.innerText = "LOADING DROPS.JSON (32K)...";
+                    // 2. Fetch the 32,000 line file
+                    status.innerText = "LOADING DROPS.JSON (32K ENTRIES)...";
                     const dropsRes = await fetch("./drops.json").catch(() => null);
                     const dropsJson = dropsRes && dropsRes.ok ? await dropsRes.json() : {};
 
-                    lText.innerText = "LOADING HTOI.JSON (2.5K)...";
+                    // 3. Fetch the converted SQL file
+                    status.innerText = "LOADING HTOI.JSON (2.5K ENTRIES)...";
                     const htoiRes = await fetch("./htoi.json").catch(() => null);
                     const htoiArray = htoiRes && htoiRes.ok ? await htoiRes.json() : [];
 
-                    lText.innerText = "MERGING INTELLIGENCE...";
+                    // 4. Merge logic
+                    status.innerText = "DECRYPTING INTEL...";
                     const combined = { ...dropsJson };
                     if (Array.isArray(htoiArray)) {
                         htoiArray.forEach(entry => {
@@ -210,7 +214,7 @@
                     this.setupListeners();
                     this.applyFilters();
                 } catch(e) { 
-                    document.getElementById('loader-text').innerText = "FATAL SYNC ERROR";
+                    document.getElementById('loader-text').innerText = "ARCHIVE SYNC FAILED";
                     console.error(e);
                 }
             },
@@ -240,17 +244,19 @@
 
                 const filtered = this.data.filter(i => {
                     const lvl = i.level || i.requirements?.level || 0;
+                    const hasDrop = this.mergedDrops[i.name] && this.mergedDrops[i.name].length > 0;
+                    
                     if(search && !i.name.toLowerCase().includes(search)) return false;
                     if(tier && i.tier !== tier) return false;
                     if(lvl < min || lvl > max) return false;
-                    if(onlyCoords && (!this.mergedDrops[i.name] || this.mergedDrops[i.name].length === 0)) return false;
+                    if(onlyCoords && !hasDrop) return false;
                     return true;
                 });
 
                 document.getElementById('results-text').innerText = `${filtered.length.toLocaleString()} ASSETS VISIBLE`;
                 document.getElementById('ingredient-grid').innerHTML = filtered.slice(0, 48).map(i => {
                     const drops = this.mergedDrops[i.name];
-                    const dropName = drops ? (drops[0].name || drops[0].type) : 'Unknown';
+                    const dropName = drops ? (drops[0].name || drops[0].type) : 'Redacted';
                     return `
                         <div class="matte-card rounded-xl p-6 cursor-pointer tier-${i.tier.replace(' ', '')} group" onclick="app.showDetail('${i.name.replace(/'/g, "\\'")}')">
                             <div class="flex justify-between items-start mb-4">
@@ -259,7 +265,7 @@
                             </div>
                             <div class="flex items-center justify-between mt-auto">
                                 <span class="text-[9px] font-black uppercase tracking-widest text-slate-600">${i.tier}</span>
-                                <div class="text-[9px] ${drops ? 'text-blue-400' : 'text-slate-700'} font-bold flex items-center gap-1">
+                                <div class="text-[9px] ${drops ? 'text-blue-400' : 'text-slate-800'} font-bold flex items-center gap-1">
                                     <i class="fas fa-location-crosshairs opacity-40"></i>
                                     <span class="truncate max-w-[120px]">${dropName}</span>
                                 </div>
@@ -277,6 +283,7 @@
                 document.getElementById('view-detail').classList.remove('hidden');
                 window.scrollTo(0,0);
                 
+                // Process Identification Values (Handle objects or numbers)
                 const idHtml = Object.entries(i.identifications || i.stats || {}).map(([k, v]) => {
                     const val = typeof v === 'object' ? `${v.min || v.minimum} to ${v.max || v.maximum}` : v;
                     return `
